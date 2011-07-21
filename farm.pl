@@ -147,3 +147,15 @@ use Test;
         animals => { big_dog => 1 },
     }], "wolf with a big dog => lose the big dog";
 }
+
+{
+    my $game = Game.new(p => ({ rabbit => 1, sheep => 1, pig => 1, cow => 1 }),
+                        fd => { <fox> }, wd => { <wolf> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "player 1",
+        to      => "stock",
+        animals => { rabbit => 1, sheep => 1, pig => 1, cow => 1 },
+    }], "both fox and wolf and no protection => same as wolf";
+}
