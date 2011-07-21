@@ -1,13 +1,20 @@
 class Game {
+    has &!fd;
+    has &!wd;
     has @.e;
 
     method play_round() {
+        my ($a1, $a2) = &!fd(), &!wd();
+        (my %stock){$_}++ for $a1, $a2;
+        (my %to_transfer){$_} = %stock{$_} div 2
+            if %stock{$_} div 2
+            for $a1, $a2;
         push @.e, {
             type    => "transfer",
             from    => "stock",
             to      => "player 1",
-            animals => { rabbit => 1 },
-        };
+            animals => %to_transfer,
+        } if %to_transfer;
     }
 }
 
