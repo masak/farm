@@ -62,3 +62,15 @@ use Test;
         animals => { rabbit => 2 },
     }], "rolling rabbit/sheep if you already have 3 rabbits => 2 rabbits";
 }
+
+{
+    my $game = Game.new(p => ({ rabbit => 15 }),
+                        fd => { <rabbit> }, wd => { <fox> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "player 1",
+        to      => "stock",
+        animals => { rabbit => 15 },
+    }], "fox with no small dog => lose all your rabbits";
+}
