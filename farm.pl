@@ -129,3 +129,16 @@ use Test;
     $game.play_round();
     is_deeply $game.e, [], "wolf doesn't eat horses and small dogs";
 }
+
+{
+    my $game = Game.new(p => ({ rabbit => 1, sheep => 1, pig => 1, cow => 1,
+                                big_dog => 1 }),
+                        fd => { <rabbit> }, wd => { <wolf> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "player 1",
+        to      => "stock",
+        animals => { big_dog => 1 },
+    }], "wolf with a big dog => lose the big dog";
+}
