@@ -4,28 +4,29 @@ class Game {
     has &!wd;
     has @.e;
 
+    method transfer($from, $to, %animals) {
+        push @.e, { :type<transfer>, :$from, :$to, :%animals };
+    }
+
     method play_round() {
         my ($a1, $a2) = &!fd(), &!wd();
         my %stock = @!p[0].list;
         if $a1 eq 'fox' {
-            push @.e, {
-                type    => "transfer",
-                from    => "player 1",
-                to      => "stock",
-                animals => { rabbit => %stock<rabbit> },
-            } if %stock<rabbit>;
+            if %stock<small_dog> {
+                $.transfer("player 1", "stock", { small_dog => 1 });
+            }
+            else {
+                $.transfer("player 1", "stock", { rabbit => %stock<rabbit> })
+                    if %stock<rabbit>;
+            }
             return;
         }
         %stock{$_}++ for $a1, $a2;
         (my %to_transfer){$_} = %stock{$_} div 2
             if %stock{$_} div 2
             for $a1, $a2;
-        push @.e, {
-            type    => "transfer",
-            from    => "stock",
-            to      => "player 1",
-            animals => %to_transfer,
-        } if %to_transfer;
+        $.transfer("stock", "player 1", %to_transfer)
+            if %to_transfer;
     }
 }
 
