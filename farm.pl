@@ -22,10 +22,15 @@ class Game {
             return;
         }
         if $a2 eq 'wolf' {
-            (my %to_transfer){$_} = %stock{$_} if %stock{$_}
-                for <rabbit sheep pig cow>;
-            $.transfer("player 1", "stock", %to_transfer)
-                if %to_transfer;
+            if %stock<big_dog> {
+                $.transfer("player 1", "stock", { big_dog => 1 });
+            }
+            else {
+                (my %to_transfer){$_} = %stock{$_} if %stock{$_}
+                    for <rabbit sheep pig cow>;
+                $.transfer("player 1", "stock", %to_transfer)
+                    if %to_transfer;
+            }
             return;
         }
         %stock{$_}++ for $a1, $a2;
