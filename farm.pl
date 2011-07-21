@@ -13,7 +13,7 @@ class Game {
                 from    => "player 1",
                 to      => "stock",
                 animals => { rabbit => %stock<rabbit> },
-            };
+            } if %stock<rabbit>;
             return;
         }
         %stock{$_}++ for $a1, $a2;
@@ -82,4 +82,11 @@ use Test;
         to      => "stock",
         animals => { rabbit => 15 },
     }], "fox with no small dog => lose all your rabbits";
+}
+
+{
+    my $game = Game.new(p => ({ rabbit => 0 }),
+                        fd => { <fox> }, wd => { <rabbit> });
+    $game.play_round();
+    is_deeply $game.e, [], "fox but no rabbits => nothing";
 }
