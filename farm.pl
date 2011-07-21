@@ -1,43 +1,48 @@
 class Game {
-    has @.p = {};
+    has %.p;
     has &!fd;
     has &!wd;
     has @.e;
 
     method transfer($from, $to, %animals) {
+        for %animals.kv -> $animal, $amount {
+            %.p{$from}{$animal} -= $amount; 
+            %.p{$to  }{$animal} += $amount; 
+        }
         push @.e, { :type<transfer>, :$from, :$to, :%animals };
     }
 
     method play_round() {
         my ($a1, $a2) = &!fd(), &!wd();
-        my %stock = @!p[0].list;
-        if $a1 eq 'fox' {
-            if %stock<small_dog> {
-                $.transfer("player 1", "stock", { small_dog => 1 });
-            }
-            else {
-                $.transfer("player 1", "stock", { rabbit => %stock<rabbit> })
-                    if %stock<rabbit>;
-            }
-            return;
-        }
         if $a2 eq 'wolf' {
-            if %stock<big_dog> {
-                $.transfer("player 1", "stock", { big_dog => 1 });
+            if %!p<player_1><big_dog> {
+                $.transfer("player_1", "stock", { big_dog => 1 });
             }
             else {
-                (my %to_transfer){$_} = %stock{$_} if %stock{$_}
-                    for <rabbit sheep pig cow>;
-                $.transfer("player 1", "stock", %to_transfer)
+                (my %to_transfer){$_} = %!p<player_1>{$_}
+                    if %!p<player_1>{$_} for <rabbit sheep pig cow>;
+                $.transfer("player_1", "stock", %to_transfer)
                     if %to_transfer;
             }
-            return;
         }
+        if $a1 eq 'fox' {
+            if %!p<player_1><small_dog> {
+                $.transfer("player_1", "stock", { small_dog => 1 });
+            }
+            else {
+                $.transfer("player_1", "stock",
+                           { rabbit => %!p<player_1><rabbit> })
+                    if %!p<player_1><rabbit>;
+            }
+        }
+        return if $a1 eq 'fox' || $a2 eq 'wolf';
+
+        my %stock = %!p<player_1> // {};
         %stock{$_}++ for $a1, $a2;
         (my %to_transfer){$_} = %stock{$_} div 2
             if %stock{$_} div 2
             for $a1, $a2;
-        $.transfer("stock", "player 1", %to_transfer)
+        $.transfer("stock", "player_1", %to_transfer)
             if %to_transfer;
     }
 }
@@ -50,7 +55,7 @@ use Test;
     is_deeply $game.e, [{
         type    => "transfer",
         from    => "stock",
-        to      => "player 1",
+        to      => "player_1",
         animals => { rabbit => 1 },
     }], "rolling two rabbits gives you a rabbit";
 }
@@ -62,99 +67,102 @@ use Test;
 }
 
 {
-    my $game = Game.new(p => ({ rabbit => 2 }),
+    my $game = Game.new(p => (player_1 => { rabbit => 2 }),
                         fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
         from    => "stock",
-        to      => "player 1",
+        to      => "player_1",
         animals => { rabbit => 1 },
     }], "rolling rabbit/sheep if you already have 2 rabbits => 1 rabbit";
 }
 
 {
-    my $game = Game.new(p => ({ rabbit => 3 }),
+    my $game = Game.new(p => (player_1 => { rabbit => 3 }),
                         fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
         from    => "stock",
-        to      => "player 1",
+        to      => "player_1",
         animals => { rabbit => 2 },
     }], "rolling rabbit/sheep if you already have 3 rabbits => 2 rabbits";
 }
 
 {
-    my $game = Game.new(p => ({ rabbit => 15 }),
+    my $game = Game.new(p => (player_1 => { rabbit => 15 }),
                         fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
-        from    => "player 1",
+        from    => "player_1",
         to      => "stock",
         animals => { rabbit => 15 },
     }], "fox with no small dog => lose all your rabbits";
 }
 
 {
-    my $game = Game.new(p => ({ rabbit => 0 }),
+    my $game = Game.new(p => (player_1 => { rabbit => 0 }),
                         fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
     is_deeply $game.e, [], "fox but no rabbits => nothing";
 }
 
 {
-    my $game = Game.new(p => ({ rabbit => 15, small_dog => 1 }),
+    my $game = Game.new(p => (player_1 => { rabbit => 15, small_dog => 1 }),
                         fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
-        from    => "player 1",
+        from    => "player_1",
         to      => "stock",
         animals => { small_dog => 1 },
     }], "fox with a small dog => lose the small dog";
 }
 
 {
-    my $game = Game.new(p => ({ rabbit => 1, sheep => 1, pig => 1, cow => 1 }),
+    my $game = Game.new(p => (player_1 => { rabbit => 1, sheep => 1,
+                                            pig => 1, cow => 1 }),
                         fd => { <rabbit> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
-        from    => "player 1",
+        from    => "player_1",
         to      => "stock",
         animals => { rabbit => 1, sheep => 1, pig => 1, cow => 1 },
     }], "wolf eats rabbits, sheep, pigs, and cows";
 }
 
 {
-    my $game = Game.new(p => ({ horse => 1, small_dog => 1 }),
+    my $game = Game.new(p => (player_1 => { horse => 1, small_dog => 1 }),
                         fd => { <rabbit> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [], "wolf doesn't eat horses and small dogs";
 }
 
 {
-    my $game = Game.new(p => ({ rabbit => 1, sheep => 1, pig => 1, cow => 1,
-                                big_dog => 1 }),
+    my $game = Game.new(p => (player_1 => { rabbit => 1, sheep => 1,
+                                            pig => 1, cow => 1,
+                                            big_dog => 1 }),
                         fd => { <rabbit> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
-        from    => "player 1",
+        from    => "player_1",
         to      => "stock",
         animals => { big_dog => 1 },
     }], "wolf with a big dog => lose the big dog";
 }
 
 {
-    my $game = Game.new(p => ({ rabbit => 1, sheep => 1, pig => 1, cow => 1 }),
+    my $game = Game.new(p => (player_1 => { rabbit => 1, sheep => 1,
+                                            pig => 1, cow => 1 }),
                         fd => { <fox> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
-        from    => "player 1",
+        from    => "player_1",
         to      => "stock",
         animals => { rabbit => 1, sheep => 1, pig => 1, cow => 1 },
     }], "both fox and wolf and no protection => same as wolf";
