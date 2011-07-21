@@ -7,6 +7,15 @@ class Game {
     method play_round() {
         my ($a1, $a2) = &!fd(), &!wd();
         my %stock = @!p[0].list;
+        if $a1 eq 'fox' {
+            push @.e, {
+                type    => "transfer",
+                from    => "player 1",
+                to      => "stock",
+                animals => { rabbit => %stock<rabbit> },
+            };
+            return;
+        }
         %stock{$_}++ for $a1, $a2;
         (my %to_transfer){$_} = %stock{$_} div 2
             if %stock{$_} div 2
@@ -65,7 +74,7 @@ use Test;
 
 {
     my $game = Game.new(p => ({ rabbit => 15 }),
-                        fd => { <rabbit> }, wd => { <fox> });
+                        fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
