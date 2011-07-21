@@ -23,3 +23,9 @@ use Test;
         animals => { rabbit => 1 },
     }], "rolling two rabbits gives you a rabbit";
 }
+
+{
+    my $game = Game.new(fd => { <rabbit> }, wd => { <sheep> });
+    $game.play_round();
+    is_deeply $game.e, [], "rolling rabbit/sheep gives you nothing";
+}
