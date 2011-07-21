@@ -48,5 +48,17 @@ use Test;
         from    => "stock",
         to      => "player 1",
         animals => { rabbit => 1 },
-    }], "rolling rabbit/sheep if you already have 2 rabbits";
+    }], "rolling rabbit/sheep if you already have 2 rabbits => 1 rabbit";
+}
+
+{
+    my $game = Game.new(p => ({ rabbit => 3 }),
+                        fd => { <rabbit> }, wd => { <sheep> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "stock",
+        to      => "player 1",
+        animals => { rabbit => 2 },
+    }], "rolling rabbit/sheep if you already have 3 rabbits => 2 rabbits";
 }
