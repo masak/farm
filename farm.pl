@@ -122,3 +122,10 @@ use Test;
         animals => { rabbit => 1, sheep => 1, pig => 1, cow => 1 },
     }], "wolf eats rabbits, sheep, pigs, and cows";
 }
+
+{
+    my $game = Game.new(p => ({ horse => 1, small_dog => 1 }),
+                        fd => { <rabbit> }, wd => { <wolf> });
+    $game.play_round();
+    is_deeply $game.e, [], "wolf doesn't eat horses and small dogs";
+}
