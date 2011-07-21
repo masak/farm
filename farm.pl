@@ -90,3 +90,15 @@ use Test;
     $game.play_round();
     is_deeply $game.e, [], "fox but no rabbits => nothing";
 }
+
+{
+    my $game = Game.new(p => ({ rabbit => 15, small_dog => 1 }),
+                        fd => { <fox> }, wd => { <rabbit> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "player 1",
+        to      => "stock",
+        animals => { small_dog => 1 },
+    }], "fox with a small dog => lose the small dog";
+}
