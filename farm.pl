@@ -6,9 +6,10 @@ class Game {
     has $!cp;       # current player
     has %!t;        # player trading code objects
 
+    my @animals = <rabbit sheep pig cow horse small_dog big_dog>;
+
     submethod BUILD(:%!p, :&!fd, :&!wd, :@!e, :$!cp = 'player_1', :%!t) {
-        %!p<stock> //= hash <rabbit sheep pig cow horse small_dog big_dog> Z=>
-                            (    60,   24, 20, 12,    6,        4,      2);
+        %!p<stock> //= hash @animals Z=> (60, 24, 20, 12, 6, 4, 2);
         &!fd //= { ('rabbit' xx 6, <sheep pig> xx 2, 'horse', 'fox').roll };
         &!wd //= { ('rabbit' xx 6, 'sheep' xx 3, 'pig', 'cow', 'wolf').roll };
     }
@@ -19,6 +20,11 @@ class Game {
 
     sub trunc_animals(%player, %to_trade) {
         hash map {; $_ => %to_trade{$_} min %player{$_} }, %to_trade.keys;
+    }
+
+    sub worth(%to_trade) {
+        my %value = @animals Z=> (1, 6, 12, 36, 72, 6, 36);
+        return [+] map -> $k, $v { $v * %value{$k} }, %to_trade.kv;
     }
 
     method transfer($from, $to, %animals) {
@@ -35,7 +41,8 @@ class Game {
                && %trade.exists("with") && %!p.exists(%trade<with>)
                && enough_animals(%!p{$!cp},         %trade<selling>)
                && (%trade<with> eq 'stock'
-                   || enough_animals(%!p{%trade<with>}, %trade<buying>)) {
+                   || enough_animals(%!p{%trade<with>}, %trade<buying>))
+               && worth(%trade<selling>) == worth(%trade<buying>) {
 
                 $.transfer($!cp, %trade<with>, %trade<selling>);
                 $.transfer(%trade<with>, $!cp,
