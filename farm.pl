@@ -264,3 +264,17 @@ use Test;
         animals => { sheep => 1 },
     }], "p1 makes a successful trade with p2: 6 rabbits for 1 sheep";
 }
+
+{
+    my $game = Game.new(p => {player_1 => { rabbit => 5 },
+                              player_2 => { sheep => 1 }},
+                        t => {player_1 => sub { return {
+                                type => "trade",
+                                with => "player_2",
+                                selling => { rabbit => 6 },
+                                buying  => { sheep => 1 },
+                             }}},
+                        fd => { <horse> }, wd => { <cow> });
+    $game.play_round();
+    is_deeply $game.e, [], "p1 doesn't have enough animals: no trade";
+}
