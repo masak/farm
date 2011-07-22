@@ -356,3 +356,26 @@ use Test;
     $game.play_round();
     is_deeply $game.e, [], ":with key contains illegal player: no trade";
 }
+
+{
+    my $game = Game.new(p => {player_1 => { rabbit => 6 }},
+                        t => {player_1 => sub { return {
+                                type => "trade",
+                                with => "stock",
+                                selling => { rabbit => 6 },
+                                buying  => { sheep => 1 },
+                             }}},
+                        fd => { <horse> }, wd => { <cow> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "player_1",
+        to      => "stock",
+        animals => { rabbit => 6 },
+    }, {
+        type    => "transfer",
+        from    => "stock",
+        to      => "player_1",
+        animals => { sheep => 1 },
+    }], "successful trade with the stock";
+}
