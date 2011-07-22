@@ -7,15 +7,8 @@ class Game {
 
     submethod BUILD(:%!p, :&!fd = { <rabbit> }, :&!wd = { <rabbit> },
                     :@!e, :$!cp = 'player_1') {
-        %!p<stock> //= {
-            rabbit    => 60,
-            sheep     => 24,
-            pig       => 20,
-            cow       => 12,
-            horse     => 6,
-            small_dog => 4,
-            big_dog   => 2,
-        };
+        %!p<stock> //= hash <rabbit sheep pig cow horse small_dog big_dog> Z=>
+                            (    60,   24, 20, 12,    6,        4,      2);
     }
 
     method transfer($from, $to, %animals) {
