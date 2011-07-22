@@ -1,11 +1,12 @@
 class Game {
-    has %.p;
+    has %!p;
     has &!fd;
     has &!wd;
     has @.e;
+    has $!cp;
 
     submethod BUILD(:%!p, :&!fd = { <rabbit> }, :&!wd = { <rabbit> },
-                    :@!e) {
+                    :@!e, :$!cp = 'player_1') {
         %!p<stock> //= {
             rabbit    => 60,
             sheep     => 24,
@@ -19,8 +20,8 @@ class Game {
 
     method transfer($from, $to, %animals) {
         for %animals.kv -> $animal, $amount {
-            %.p{$from}{$animal} -= $amount; 
-            %.p{$to  }{$animal} += $amount; 
+            %!p{$from}{$animal} -= $amount;
+            %!p{$to  }{$animal} += $amount;
         }
         push @.e, { :type<transfer>, :$from, :$to, :%animals };
     }
@@ -28,34 +29,37 @@ class Game {
     method play_round() {
         my ($a1, $a2) = &!fd(), &!wd();
         if $a2 eq 'wolf' {
-            if %!p<player_1><big_dog> {
-                $.transfer("player_1", "stock", { big_dog => 1 });
+            if %!p{$!cp}<big_dog> {
+                $.transfer($!cp, "stock", { big_dog => 1 });
             }
             else {
-                (my %to_transfer){$_} = %!p<player_1>{$_}
-                    if %!p<player_1>{$_} for <rabbit sheep pig cow>;
-                $.transfer("player_1", "stock", %to_transfer)
+                (my %to_transfer){$_} = %!p{$!cp}{$_}
+                    if %!p{$!cp}{$_} for <rabbit sheep pig cow>;
+                $.transfer($!cp, "stock", %to_transfer)
                     if %to_transfer;
             }
         }
         if $a1 eq 'fox' {
-            if %!p<player_1><small_dog> {
-                $.transfer("player_1", "stock", { small_dog => 1 });
+            if %!p{$!cp}<small_dog> {
+                $.transfer($!cp, "stock", { small_dog => 1 });
             }
             else {
-                $.transfer("player_1", "stock",
-                           { rabbit => %!p<player_1><rabbit> })
-                    if %!p<player_1><rabbit>;
+                $.transfer($!cp, "stock",
+                           { rabbit => %!p{$!cp}<rabbit> })
+                    if %!p{$!cp}<rabbit>;
             }
         }
 
-        my %stock = %!p<player_1> // {};
+        my %stock = %!p{$!cp} // {};
         %stock{$_}++ for $a1, $a2;
         (my %to_transfer){$_} = my $number_of_pairs
-            if $number_of_pairs = (%stock{$_} div 2) min %.p<stock>{$_}
+            if $number_of_pairs = (%stock{$_} div 2) min %!p<stock>{$_}
             for $a1, $a2;
-        $.transfer("stock", "player_1", %to_transfer)
+        $.transfer("stock", $!cp, %to_transfer)
             if %to_transfer;
+        unless %!p.exists(++$!cp) {
+            $!cp = "player_1";
+        }
     }
 }
 
