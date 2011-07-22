@@ -209,3 +209,21 @@ use Test;
         animals => { rabbit => 3 },
     }], "breeding can happen after the fox came";
 }
+
+{
+    my $game = Game.new(p => {player_1 => { rabbit => 3 },
+                              player_2 => { sheep => 5 }},
+                        fd => { <rabbit> }, wd => { <sheep> });
+    $game.play_round() for ^2;
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "stock",
+        to      => "player_1",
+        animals => { rabbit => 2 },
+    }, {
+        type    => "transfer",
+        from    => "stock",
+        to      => "player_2",
+        animals => { sheep => 3 },
+    }], "two players playing one after the other";
+}
