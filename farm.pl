@@ -225,3 +225,27 @@ use Test;
         animals => { sheep => 3 },
     }], "two players playing one after the other";
 }
+
+{
+    my $game = Game.new(p => {player_1 => { rabbit => 6 },
+                              player_2 => { sheep => 1 }},
+                        t => {player_1 => {
+                                type => "trade",
+                                with => "player_2",
+                                selling => { rabbit => 6 },
+                                buying  => { sheep => 1 },
+                             }},
+                        fd => { <horse> }, wd => { <sheep> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "player_1",
+        to      => "player_2",
+        animals => { rabbit => 6 },
+    }, {
+        type    => "transfer",
+        from    => "player_2",
+        to      => "player_1",
+        animals => { sheep => 1 },
+    }], "p1 makes a successful trade with p2: 6 rabbits for 1 sheep";
+}
