@@ -19,6 +19,9 @@ by example:
 * Player has three rabbits and five sheep, and rolls a rabbit and a sheep => 2 pairs
   of rabbits and 3 pairs of sheep. Player gets 2 rabbits and 3 sheep.
 
+* Player has 10 cows, and rolls a rabbit and a sheep => no new animals.
+  Only the animals on the dice get to breed.
+
 So, the animals breeding is determined by the dice, and the total number of animal
 pairs (and thus the total number of new animals) is counted from the total number of
 pairs in the player's inventory combined with the animals on the dice.
