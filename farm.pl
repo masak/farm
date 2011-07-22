@@ -14,7 +14,11 @@ class Game {
     }
 
     sub enough_animals(%player, %to_trade) {
-        return !grep { %to_trade{$_} > (%player{$_} // 0) }, %to_trade.keys;
+        !grep { %to_trade{$_} > (%player{$_} // 0) }, %to_trade.keys;
+    }
+
+    sub trunc_animals(%player, %to_trade) {
+        hash map {; $_ => %to_trade{$_} min %player{$_} }, %to_trade.keys;
     }
 
     method transfer($from, $to, %animals) {
@@ -30,10 +34,12 @@ class Game {
             if    %trade.exists("type") && %trade<type> eq "trade"
                && %trade.exists("with") && %!p.exists(%trade<with>)
                && enough_animals(%!p{$!cp},         %trade<selling>)
-               && enough_animals(%!p{%trade<with>}, %trade<buying> ) {
+               && (%trade<with> eq 'stock'
+                   || enough_animals(%!p{%trade<with>}, %trade<buying>)) {
 
                 $.transfer($!cp, %trade<with>, %trade<selling>);
-                $.transfer(%trade<with>, $!cp, %trade<buying>);
+                $.transfer(%trade<with>, $!cp,
+                           trunc_animals(%!p{%trade<with>}, %trade<buying>));
             }
         }
 
