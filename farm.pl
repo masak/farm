@@ -48,7 +48,6 @@ class Game {
                     if %!p<player_1><rabbit>;
             }
         }
-        return if $a1 eq 'fox' || $a2 eq 'wolf';
 
         my %stock = %!p<player_1> // {};
         %stock{$_}++ for $a1, $a2;
@@ -124,7 +123,7 @@ use Test;
 
 {
     my $game = Game.new(p => {player_1 => { rabbit => 15, small_dog => 1 }},
-                        fd => { <fox> }, wd => { <rabbit> });
+                        fd => { <fox> }, wd => { <sheep> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
@@ -158,7 +157,7 @@ use Test;
     my $game = Game.new(p => {player_1 => { rabbit => 1, sheep => 1,
                                             pig => 1, cow => 1,
                                             big_dog => 1 }},
-                        fd => { <rabbit> }, wd => { <wolf> });
+                        fd => { <horse> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
