@@ -193,3 +193,20 @@ use Test;
         animals => { rabbit => 10 },
     }], "you only get as many animals as there are in stock";
 }
+
+{
+    my $game = Game.new(p => {player_1 => { rabbit => 5, small_dog => 1 }},
+                        fd => { <fox> }, wd => { <rabbit> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "player_1",
+        to      => "stock",
+        animals => { small_dog => 1 },
+    }, {
+        type    => "transfer",
+        from    => "stock",
+        to      => "player_1",
+        animals => { rabbit => 3 },
+    }], "breeding can happen after the fox came";
+}
