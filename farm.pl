@@ -5,10 +5,11 @@ class Game {
     has @.e;
     has $!cp;
 
-    submethod BUILD(:%!p, :&!fd = { <rabbit> }, :&!wd = { <rabbit> },
-                    :@!e, :$!cp = 'player_1') {
+    submethod BUILD(:%!p, :&!fd, :&!wd, :@!e, :$!cp = 'player_1') {
         %!p<stock> //= hash <rabbit sheep pig cow horse small_dog big_dog> Z=>
                             (    60,   24, 20, 12,    6,        4,      2);
+        &!fd //= { ('rabbit' xx 6, <sheep pig> xx 2, 'horse', 'fox').roll };
+        &!wd //= { ('rabbit' xx 6, 'sheep' xx 3, 'pig', 'cow', 'wolf').roll };
     }
 
     method transfer($from, $to, %animals) {
