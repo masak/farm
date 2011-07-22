@@ -14,7 +14,7 @@ class Game {
     }
 
     sub enough_animals(%player, %to_trade) {
-        return !grep { %player{$_} < %to_trade{$_} }, %to_trade.keys;
+        return !grep { %to_trade{$_} > (%player{$_} // 0) }, %to_trade.keys;
     }
 
     method transfer($from, $to, %animals) {
@@ -27,7 +27,8 @@ class Game {
 
     method play_round() {
         if (%!t{$!cp} // {;})() -> %trade {
-            if enough_animals(%!p{$!cp}, %trade<selling>) {
+            if enough_animals(%!p{$!cp}, %trade<selling>)
+               && enough_animals(%!p{%trade<with>}, %trade<buying>) {
                 $.transfer($!cp, %trade<with>, %trade<selling>);
                 $.transfer(%trade<with>, $!cp, %trade<buying>);
             }
