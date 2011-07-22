@@ -4,6 +4,19 @@ class Game {
     has &!wd;
     has @.e;
 
+    submethod BUILD(:%!p, :&!fd = { <rabbit> }, :&!wd = { <rabbit> },
+                    :@!e) {
+        %!p<stock> //= {
+            rabbit    => 60,
+            sheep     => 24,
+            pig       => 20,
+            cow       => 12,
+            horse     => 6,
+            small_dog => 4,
+            big_dog   => 2,
+        };
+    }
+
     method transfer($from, $to, %animals) {
         for %animals.kv -> $animal, $amount {
             %.p{$from}{$animal} -= $amount; 
@@ -50,7 +63,7 @@ class Game {
 use Test;
 
 {
-    my $game = Game.new(fd => { <rabbit> }, wd => { <rabbit> });
+    my $game = Game.new(p => {}, fd => { <rabbit> }, wd => { <rabbit> });
     $game.play_round();
     is_deeply $game.e, [{
         type    => "transfer",
@@ -61,13 +74,13 @@ use Test;
 }
 
 {
-    my $game = Game.new(fd => { <rabbit> }, wd => { <sheep> });
+    my $game = Game.new(p => {}, fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round();
     is_deeply $game.e, [], "rolling rabbit/sheep gives you nothing";
 }
 
 {
-    my $game = Game.new(p => (player_1 => { rabbit => 2 }),
+    my $game = Game.new(p => {player_1 => { rabbit => 2 }},
                         fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round();
     is_deeply $game.e, [{
@@ -79,7 +92,7 @@ use Test;
 }
 
 {
-    my $game = Game.new(p => (player_1 => { rabbit => 3 }),
+    my $game = Game.new(p => {player_1 => { rabbit => 3 }},
                         fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round();
     is_deeply $game.e, [{
@@ -91,7 +104,7 @@ use Test;
 }
 
 {
-    my $game = Game.new(p => (player_1 => { rabbit => 15 }),
+    my $game = Game.new(p => {player_1 => { rabbit => 15 }},
                         fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
     is_deeply $game.e, [{
@@ -103,14 +116,14 @@ use Test;
 }
 
 {
-    my $game = Game.new(p => (player_1 => { rabbit => 0 }),
+    my $game = Game.new(p => {player_1 => { rabbit => 0 }},
                         fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
     is_deeply $game.e, [], "fox but no rabbits => nothing";
 }
 
 {
-    my $game = Game.new(p => (player_1 => { rabbit => 15, small_dog => 1 }),
+    my $game = Game.new(p => {player_1 => { rabbit => 15, small_dog => 1 }},
                         fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
     is_deeply $game.e, [{
@@ -122,8 +135,8 @@ use Test;
 }
 
 {
-    my $game = Game.new(p => (player_1 => { rabbit => 1, sheep => 1,
-                                            pig => 1, cow => 1 }),
+    my $game = Game.new(p => {player_1 => { rabbit => 1, sheep => 1,
+                                            pig => 1, cow => 1 }},
                         fd => { <rabbit> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [{
@@ -135,16 +148,16 @@ use Test;
 }
 
 {
-    my $game = Game.new(p => (player_1 => { horse => 1, small_dog => 1 }),
+    my $game = Game.new(p => {player_1 => { horse => 1, small_dog => 1 }},
                         fd => { <rabbit> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [], "wolf doesn't eat horses and small dogs";
 }
 
 {
-    my $game = Game.new(p => (player_1 => { rabbit => 1, sheep => 1,
+    my $game = Game.new(p => {player_1 => { rabbit => 1, sheep => 1,
                                             pig => 1, cow => 1,
-                                            big_dog => 1 }),
+                                            big_dog => 1 }},
                         fd => { <rabbit> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [{
@@ -156,8 +169,8 @@ use Test;
 }
 
 {
-    my $game = Game.new(p => (player_1 => { rabbit => 1, sheep => 1,
-                                            pig => 1, cow => 1 }),
+    my $game = Game.new(p => {player_1 => { rabbit => 1, sheep => 1,
+                                            pig => 1, cow => 1 }},
                         fd => { <fox> }, wd => { <wolf> });
     $game.play_round();
     is_deeply $game.e, [{
@@ -166,4 +179,17 @@ use Test;
         to      => "stock",
         animals => { rabbit => 1, sheep => 1, pig => 1, cow => 1 },
     }], "both fox and wolf and no protection => same as wolf";
+}
+
+{
+    my $game = Game.new(p => {stock => { rabbit => 10 },
+                              player_1 => { rabbit => 25 }},
+                        fd => { <rabbit> }, wd => { <rabbit> });
+    $game.play_round();
+    is_deeply $game.e, [{
+        type    => "transfer",
+        from    => "stock",
+        to      => "player_1",
+        animals => { rabbit => 10 },
+    }], "you only get as many animals as there are in stock";
 }
