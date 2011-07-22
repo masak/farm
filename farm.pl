@@ -1,10 +1,10 @@
 class Game {
-    has %!p;
-    has &!fd;
-    has &!wd;
-    has @.e;
-    has $!cp;
-    has %!t;
+    has %!p;        # players (and stock): hash of hashes of animals
+    has &!fd;       # fox  die code object
+    has &!wd;       # wolf die code object
+    has @.e;        # event queue: array of hashes representing events
+    has $!cp;       # current player
+    has %!t;        # player trading code objects
 
     submethod BUILD(:%!p, :&!fd, :&!wd, :@!e, :$!cp = 'player_1', :%!t) {
         %!p<stock> //= hash <rabbit sheep pig cow horse small_dog big_dog> Z=>
