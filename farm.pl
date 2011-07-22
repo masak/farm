@@ -28,7 +28,7 @@ class Game {
     method play_round() {
         if (%!t{$!cp} // {;})() -> %trade {
             if    %trade.exists("type") && %trade<type> eq "trade"
-               && %trade.exists("with")
+               && %trade.exists("with") && %!p.exists(%trade<with>)
                && enough_animals(%!p{$!cp},         %trade<selling>)
                && enough_animals(%!p{%trade<with>}, %trade<buying> ) {
 
