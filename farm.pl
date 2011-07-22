@@ -409,3 +409,18 @@ use Test;
         animals => { sheep => 1 },
     }], "when stock doesn't have enough, it gives all it has";
 }
+
+{
+    my $game = Game.new(p => {player_1 => { rabbit => 6 },
+                              player_2 => { sheep => 1 }},
+                        t => {player_1 => sub { return {
+                                type => "trade",
+                                with => "player_2",
+                                selling => { rabbit => 4 },
+                                buying  => { sheep => 1 },
+                             }}},
+                        fd => { <horse> }, wd => { <cow> });
+    $game.play_round();
+    is_deeply $game.e, [],
+        "total values of animal pools don't match up: no trade";
+}
