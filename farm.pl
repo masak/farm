@@ -13,6 +13,10 @@ class Game {
         &!wd //= { ('rabbit' xx 6, 'sheep' xx 3, 'pig', 'cow', 'wolf').roll };
     }
 
+    sub enough_animals(%player, %to_trade) {
+        return !grep { %player{$_} < %to_trade{$_} }, %to_trade.keys;
+    }
+
     method transfer($from, $to, %animals) {
         for %animals.kv -> $animal, $amount {
             %!p{$from}{$animal} -= $amount;
@@ -23,8 +27,10 @@ class Game {
 
     method play_round() {
         if (%!t{$!cp} // {;})() -> %trade {
-            $.transfer($!cp, %trade<with>, %trade<selling>);
-            $.transfer(%trade<with>, $!cp, %trade<buying>);
+            if enough_animals(%!p{$!cp}, %trade<selling>) {
+                $.transfer($!cp, %trade<with>, %trade<selling>);
+                $.transfer(%trade<with>, $!cp, %trade<buying>);
+            }
         }
 
         my ($a1, $a2) = &!fd(), &!wd();
