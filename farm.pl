@@ -27,7 +27,7 @@ class Game {
 
     method play_round() {
         if (%!t{$!cp} // {;})() -> %trade {
-            if %trade.exists("type")
+            if %trade.exists("type") && %trade<type> eq "trade"
                && enough_animals(%!p{$!cp},         %trade<selling>)
                && enough_animals(%!p{%trade<with>}, %trade<buying> ) {
 
@@ -313,4 +313,18 @@ use Test;
                         fd => { <horse> }, wd => { <sheep> });
     $game.play_round();
     is_deeply $game.e, [], ":type key missing: no trade";
+}
+
+{
+    my $game = Game.new(p => {player_1 => { rabbit => 6 },
+                              player_2 => { sheep => 1 }},
+                        t => {player_1 => sub { return {
+                                type => "scintillating muffin party",
+                                with => "player_2",
+                                selling => { rabbit => 6 },
+                                buying  => { sheep => 1 },
+                             }}},
+                        fd => { <horse> }, wd => { <sheep> });
+    $game.play_round();
+    is_deeply $game.e, [], ":type key not 'trade': no trade";
 }
