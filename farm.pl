@@ -52,8 +52,8 @@ class Game {
 
         my %stock = %!p<player_1> // {};
         %stock{$_}++ for $a1, $a2;
-        (my %to_transfer){$_} = %stock{$_} div 2
-            if %stock{$_} div 2
+        (my %to_transfer){$_} = my $number_of_pairs
+            if $number_of_pairs = (%stock{$_} div 2) min %.p<stock>{$_}
             for $a1, $a2;
         $.transfer("stock", "player_1", %to_transfer)
             if %to_transfer;
