@@ -27,8 +27,10 @@ class Game {
 
     method play_round() {
         if (%!t{$!cp} // {;})() -> %trade {
-            if enough_animals(%!p{$!cp}, %trade<selling>)
-               && enough_animals(%!p{%trade<with>}, %trade<buying>) {
+            if %trade.exists("type")
+               && enough_animals(%!p{$!cp},         %trade<selling>)
+               && enough_animals(%!p{%trade<with>}, %trade<buying> ) {
+
                 $.transfer($!cp, %trade<with>, %trade<selling>);
                 $.transfer(%trade<with>, $!cp, %trade<buying>);
             }
