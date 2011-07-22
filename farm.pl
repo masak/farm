@@ -50,8 +50,9 @@ class Game {
             }
         }
 
-        my ($a1, $a2) = &!fd(), &!wd();
-        if $a2 eq 'wolf' {
+        my ($fd, $wd) = &!fd(), &!wd();
+        push @.e, { :type<roll>, :$fd, :$wd };
+        if $wd eq 'wolf' {
             if %!p{$!cp}<big_dog> {
                 $.transfer($!cp, "stock", { big_dog => 1 });
             }
@@ -62,7 +63,7 @@ class Game {
                     if %to_transfer;
             }
         }
-        if $a1 eq 'fox' {
+        if $fd eq 'fox' {
             if %!p{$!cp}<small_dog> {
                 $.transfer($!cp, "stock", { small_dog => 1 });
             }
@@ -74,10 +75,10 @@ class Game {
         }
 
         my %stock = %!p{$!cp} // {};
-        %stock{$_}++ for $a1, $a2;
+        %stock{$_}++ for $fd, $wd;
         (my %to_transfer){$_} = my $number_of_pairs
             if $number_of_pairs = (%stock{$_} div 2) min %!p<stock>{$_}
-            for $a1, $a2;
+                for $fd, $wd;
         $.transfer("stock", $!cp, %to_transfer)
             if %to_transfer;
         unless %!p.exists(++$!cp) {
@@ -95,11 +96,13 @@ use Test;
 ##         don't pass in a hash, and the BUILD submethod expects a named hash
 ##         as a parameter.
 
+sub non_rolls(@e) { [grep { .<type> ne 'roll' }, @e] }
+
 {
     my $game = Game.new(p => {}, t => {},
                         fd => { <rabbit> }, wd => { <rabbit> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "stock",
         to      => "player_1",
@@ -111,14 +114,14 @@ use Test;
     my $game = Game.new(p => {}, t => {},
                         fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [], "rolling rabbit/sheep gives you nothing";
+    is_deeply non_rolls($game.e), [], "rolling rabbit/sheep gives you nothing";
 }
 
 {
     my $game = Game.new(p => {player_1 => { rabbit => 2 }}, t => {},
                         fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "stock",
         to      => "player_1",
@@ -130,7 +133,7 @@ use Test;
     my $game = Game.new(p => {player_1 => { rabbit => 3 }}, t => {},
                         fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "stock",
         to      => "player_1",
@@ -142,7 +145,7 @@ use Test;
     my $game = Game.new(p => {player_1 => { rabbit => 15 }}, t => {},
                         fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "stock",
@@ -154,14 +157,14 @@ use Test;
     my $game = Game.new(p => {player_1 => { rabbit => 0 }}, t => {},
                         fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
-    is_deeply $game.e, [], "fox but no rabbits => nothing";
+    is_deeply non_rolls($game.e), [], "fox but no rabbits => nothing";
 }
 
 {
     my $game = Game.new(p => {player_1 => { rabbit => 15, small_dog => 1 }},
                         t => {}, fd => { <fox> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "stock",
@@ -174,7 +177,7 @@ use Test;
                                             pig => 1, cow => 1 }},
                         t => {}, fd => { <rabbit> }, wd => { <wolf> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "stock",
@@ -186,7 +189,7 @@ use Test;
     my $game = Game.new(p => {player_1 => { horse => 1, small_dog => 1 }},
                         t => {}, fd => { <rabbit> }, wd => { <wolf> });
     $game.play_round();
-    is_deeply $game.e, [], "wolf doesn't eat horses and small dogs";
+    is_deeply non_rolls($game.e), [], "wolf doesn't eat horses and small dogs";
 }
 
 {
@@ -195,7 +198,7 @@ use Test;
                                             big_dog => 1 }},
                         t => {}, fd => { <horse> }, wd => { <wolf> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "stock",
@@ -208,7 +211,7 @@ use Test;
                                             pig => 1, cow => 1 }},
                         t => {}, fd => { <fox> }, wd => { <wolf> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "stock",
@@ -221,7 +224,7 @@ use Test;
                               player_1 => { rabbit => 25 }},
                         t => {}, fd => { <rabbit> }, wd => { <rabbit> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "stock",
         to      => "player_1",
@@ -233,7 +236,7 @@ use Test;
     my $game = Game.new(p => {player_1 => { rabbit => 5, small_dog => 1 }},
                         t => {}, fd => { <fox> }, wd => { <rabbit> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "stock",
@@ -251,7 +254,7 @@ use Test;
                               player_2 => { sheep => 5 }},
                         t => {}, fd => { <rabbit> }, wd => { <sheep> });
     $game.play_round() for ^2;
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "stock",
         to      => "player_1",
@@ -275,7 +278,7 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <cow> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "player_2",
@@ -299,7 +302,8 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <cow> });
     $game.play_round();
-    is_deeply $game.e, [], "p1 doesn't have enough animals: no trade";
+    is_deeply non_rolls($game.e), [],
+        "p1 doesn't have enough animals: no trade";
 }
 
 {
@@ -313,7 +317,8 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [], "p2 doesn't have enough animals: no trade";
+    is_deeply non_rolls($game.e), [],
+        "p2 doesn't have enough animals: no trade";
 }
 
 {
@@ -326,7 +331,7 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [], ":type key missing: no trade";
+    is_deeply non_rolls($game.e), [], ":type key missing: no trade";
 }
 
 {
@@ -340,7 +345,7 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [], ":type key not 'trade': no trade";
+    is_deeply non_rolls($game.e), [], ":type key not 'trade': no trade";
 }
 
 {
@@ -353,7 +358,7 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [], ":with key missing: no trade";
+    is_deeply non_rolls($game.e), [], ":with key missing: no trade";
 }
 
 {
@@ -367,7 +372,8 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <sheep> });
     $game.play_round();
-    is_deeply $game.e, [], ":with key contains illegal player: no trade";
+    is_deeply non_rolls($game.e), [],
+        ":with key contains illegal player: no trade";
 }
 
 {
@@ -380,7 +386,7 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <cow> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "stock",
@@ -404,7 +410,7 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <cow> });
     $game.play_round();
-    is_deeply $game.e, [{
+    is_deeply non_rolls($game.e), [{
         type    => "transfer",
         from    => "player_1",
         to      => "stock",
@@ -428,6 +434,6 @@ use Test;
                              }}},
                         fd => { <horse> }, wd => { <cow> });
     $game.play_round();
-    is_deeply $game.e, [],
+    is_deeply non_rolls($game.e), [],
         "total values of animal pools don't match up: no trade";
 }
