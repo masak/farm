@@ -120,10 +120,10 @@ multi MAIN("test") {
 
     ## RAKUDO: If you're wondering about all the empty hashes that we're
     ##         passing into the constructor calls below, that's to work
-    ##         around a rakudobug whose number I don't have right now
-    ##         because I'm offline, which I will supply later. The bug
-    ##         causes a Null PMC access whenever we don't pass in a hash,
-    ##         and the BUILD submethod expects a named hash as a parameter.
+    ##         around https://rt.perl.org/rt3/Ticket/Display.html?id=95340
+    ##         The bug causes a Null PMC access whenever we don't pass in
+    ##         a hash, and the BUILD submethod expects a named hash as
+    ##         a parameter.
 
     sub non_rolls(@e) { [grep { .<type> ne 'roll' }, @e] }
 
