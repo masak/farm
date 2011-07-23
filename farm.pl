@@ -42,7 +42,8 @@ class Game {
                && enough_animals(%!p{$!cp}, %trade<selling>)
                && (%trade<with> eq 'stock'
                    || enough_animals(%!p{%trade<with>}, %trade<buying>))
-               && worth(%trade<selling>) == worth(%trade<buying>) {
+               && worth(%trade<selling>) == worth(%trade<buying>)
+               && 1 == [+] %trade{'selling'|'buying'}.values {
 
                 $.transfer($!cp, %trade<with>, %trade<selling>);
                 $.transfer(%trade<with>, $!cp,
@@ -431,11 +432,11 @@ multi MAIN("test") {
 
     {
         my $game = Game.new(p => {stock => { sheep => 1 },
-                                  player_1 => { rabbit => 12 }},
+                                  player_1 => { pig => 1 }},
                             t => {player_1 => sub { return {
                                     type => "trade",
                                     with => "stock",
-                                    selling => { rabbit => 12 },
+                                    selling => { pig => 1 },
                                     buying  => { sheep => 2 },
                                  }}},
                             fd => { <horse> }, wd => { <cow> });
@@ -444,7 +445,7 @@ multi MAIN("test") {
             type    => "transfer",
             from    => "player_1",
             to      => "stock",
-            animals => { rabbit => 12 },
+            animals => { pig => 1 },
         }, {
             type    => "transfer",
             from    => "stock",
@@ -466,5 +467,20 @@ multi MAIN("test") {
         $game.play_round();
         is_deeply non_rolls($game.e), [],
             "total values of animal pools don't match up: no trade";
+    }
+
+    {
+        my $game = Game.new(p => {player_1 => { rabbit => 12 },
+                                  player_2 => { sheep => 2 }},
+                            t => {player_1 => sub { return {
+                                    type => "trade",
+                                    with => "player_2",
+                                    selling => { rabbit => 12 },
+                                    buying  => { sheep => 2 },
+                                 }}},
+                            fd => { <horse> }, wd => { <cow> });
+        $game.play_round();
+        is_deeply non_rolls($game.e), [],
+            "many animals against many animals: no trade";
     }
 }
