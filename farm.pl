@@ -101,7 +101,7 @@ multi MAIN() {
     until $game.someone_won() {
         my $ei = $game.e.elems;
         $game.play_round();
-        for map { $game.e[$_] }, $ei ..^ $game.e.elems {
+        for $game.e[$ei ..^ $game.e.elems] {
             when :type<roll> {
                 say sprintf "%s rolls a %s and a %s", .<player>, .<fd>, .<wd>;
             }
