@@ -60,9 +60,14 @@ There is no haggling, and the conversion rates between animals is fixed:
     1 sheep   <=> 1 small dog
     1 cow     <=> 1 big dog
 
-Any exchange may be struck, as long as the total worth of the animals exchanged is
+An exchange may be struck as long as the total worth of the animals exchanged is
 the same. For example, 2 pigs, 1 sheep, and 6 rabbits may be exchanged for 1 cow
-(and vice versa).
+(and vice versa). The following deals are allowed: one animal for one animal
+(for example 1 sheep against 1 small dog), one animal for many animals (for
+example 1 cow against 3 pigs), many animals for one (2 sheep against 1 pig).
+However, many animals for many (for example 2 sheep and 5 pigs against 2 cows)
+isn't allowed even when (as in this case) the total worth of the animals
+exchanged is equal.
 
 If the exchange is with the stock, and the stock has fewer animals of some kind
 (for example 3 cows) than the amount desired (for example 4 cows), the lower amount
