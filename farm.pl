@@ -85,8 +85,8 @@ class Game {
         if $wd eq 'wolf' {
             prowl 'wolf', 'big_dog', <rabbit sheep pig cow>;
         }
-        if $wd eq 'fox' {
-            prowl 'fox', 'small_dog', <rabbit>;
+        if $fd eq 'fox' {
+            prowl 'fox', 'small_dog', <rabbit>.list;
         }
 
         my %stock = %!p{$!cp} // {};
