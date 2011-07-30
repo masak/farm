@@ -37,19 +37,17 @@ class Game {
     }
 
     method play_round() {
-        if (%!t{$!cp} // {;})() -> %trade {
-            if    %trade.exists("type") && %trade<type> eq "trade"
-               && %trade.exists("with") && %!p.exists(%trade<with>)
-               && enough_animals(%!p{$!cp}, %trade<selling>)
-               && (%trade<with> eq 'stock'
-                   || enough_animals(%!p{%trade<with>}, %trade<buying>))
-               && worth(%trade<selling>) == worth(%trade<buying>)
-               && %trade{'selling'|'buying'}.values.reduce(&infix:<+>) == 1
-               && (%!at{%trade<with>} // {True})() {
+        if (%!t{$!cp} // {;})() -> $_ {
+            if    .exists("type") && .<type> eq "trade"
+               && enough_animals(%!p{$!cp}, .<selling>)
+               && .exists("with") && (my $op = %!p{.<with>})
+               && (.<with> eq 'stock' || enough_animals($op, .<buying>))
+               && worth(.<selling>) == worth(.<buying>)
+               && .{'selling'|'buying'}.values.reduce(&infix:<+>) == 1
+               && (%!at{.<with>} // {True})() {
 
-                $.transfer($!cp, %trade<with>, %trade<selling>);
-                $.transfer(%trade<with>, $!cp,
-                           trunc_animals(%!p{%trade<with>}, %trade<buying>));
+                $.transfer($!cp, .<with>, .<selling>);
+                $.transfer(.<with>, $!cp, trunc_animals($op, .<buying>));
             }
         }
         return if self.someone_won;
