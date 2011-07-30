@@ -86,7 +86,10 @@ class Game {
                 for $fd, $wd;
         $.transfer("stock", $!cp, %to_transfer)
             if %to_transfer;
-        return if self.someone_won;
+        if self.someone_won {
+            push @.e, { :type<win>, :who($!cp) };
+            return;
+        }
         unless %!p.exists(++$!cp) {
             $!cp = "player_1";
         }
@@ -546,7 +549,8 @@ multi MAIN("test") {
     }
 
     {
-        my $game = Game.new(p => {player_1 => { rabbit => 1, sheep => 1, pig => 1, cow => 3 }},
+        my $game = Game.new(p => {player_1 => { rabbit => 1, sheep => 1,
+                                                pig => 1, cow => 3 }},
                             t => {player_1 => sub { return {
                                     type => "trade",
                                     with => "stock",
@@ -570,5 +574,22 @@ multi MAIN("test") {
             type    => "win",
             who     => "player_1",
         }], "winning by trading with stock";
+    }
+
+    {
+        my $game = Game.new(p => {player_1 => { rabbit => 1, pig => 1,
+                                                cow => 1, horse => 1 }},
+                            t => {}, at => {},
+                            fd => { <sheep> }, wd => { <sheep> });
+        $game.play_round();
+        is_deeply non_rolls($game.e), [{
+            type    => "transfer",
+            from    => "stock",
+            to      => "player_1",
+            animals => { sheep => 1 },
+        }, {
+            type    => "win",
+            who     => "player_1",
+        }], "winning by throwing dice";
     }
 }
