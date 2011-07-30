@@ -32,8 +32,8 @@ class Game {
 
     method transfer($from, $to, %animals) {
         for %animals.kv -> $animal, $amount {
-            %!p{$from}{$animal} -= $amount;
-            %!p{$to  }{$animal} += $amount;
+            %!p{$from}{$animal} -= $amount; %!p{$from}{$animal}.=Int;
+            %!p{$to  }{$animal} += $amount; %!p{$to  }{$animal}.=Int;
         }
         self.publish: { :type<transfer>, :$from, :$to, :%animals };
     }
@@ -70,26 +70,23 @@ class Game {
 
         my ($fd, $wd) = &!fd(), &!wd();
         self.publish: { :type<roll>, :player($!cp), :$fd, :$wd };
-        if $wd eq 'wolf' {
-            if %!p{$!cp}<big_dog> {
-                $.transfer($!cp, "stock", { big_dog => 1 });
+        sub prowl($predator, $guard, @victims) {
+            if %!p{$!cp}{$guard} {
+                $.transfer($!cp, "stock", { $guard => 1 });
             }
             else {
                 (my %to_transfer){$_} = %!p{$!cp}{$_}
-                    if %!p{$!cp}{$_} for <rabbit sheep pig cow>;
+                    if %!p{$!cp}{$_}
+                        for @victims;
                 $.transfer($!cp, "stock", %to_transfer)
                     if %to_transfer;
             }
         }
-        if $fd eq 'fox' {
-            if %!p{$!cp}<small_dog> {
-                $.transfer($!cp, "stock", { small_dog => 1 });
-            }
-            else {
-                $.transfer($!cp, "stock",
-                           { rabbit => %!p{$!cp}<rabbit> })
-                    if %!p{$!cp}<rabbit>;
-            }
+        if $wd eq 'wolf' {
+            prowl 'wolf', 'big_dog', <rabbit sheep pig cow>;
+        }
+        if $wd eq 'fox' {
+            prowl 'fox', 'small_dog', <rabbit>;
         }
 
         my %stock = %!p{$!cp} // {};
@@ -148,6 +145,8 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
         t  => (hash map {; "player_$_" => mt($_)  }, 1..$N),
         at => (hash map {; "player_$_" => mat($_) }, 1..$N),
     );
+    my %p = stock => hash <rabbit 60 sheep 24 pig 20 cow 12 horse 6
+                           small_dog 4 big_dog 2>;
     loop {
         my $ei = $game.e.elems;
         $game.play_round();
@@ -159,6 +158,10 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
                 sub s($n) { $n == 1 ?? "" !! "s" }
                 say sprintf "%s gives %s %s", .<from>, .<to>,
                     join " and ", map { "$^v $^k" ~ s $v }, .<animals>.kv;
+                for .<animals>.kv -> $animal, $amount {
+                    %p{.<from>}{$animal} -= $amount;
+                    %p{.<to>  }{$animal} += $amount;
+                }
             }
             when :type<failed> {
                 say "Trade failed. Reason: $_.<reason>.";
@@ -166,6 +169,11 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
             when :type<win> {
                 last;
             }
+        }
+        say;
+        say "Current inventories:";
+        for %p.pairs.sort {
+            say .key, ": ", .value.invert.fmt("%s %s", ", ");
         }
     }
     say "$game.who_won() won!";
