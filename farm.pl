@@ -94,8 +94,25 @@ class Game {
 }
 
 multi MAIN() {
+    my token word { <.alpha>+ }
+    my regex offer {:s [ (\d+) (<&word> ** <.ws>) ] ** ',' }
+    sub an(Match $m) { map {; ~$m[1][$_] => ~$m[0][$_] }, $m[0].keys }
+
     my $N = +prompt "How many players? ";
-    sub mt($p) { sub { prompt "Player $p, make trade? "; Nil } }
+    sub mt($p) {
+        sub { # Code lovingly st^Wcopied from sorear++'s version
+            given trim prompt "Player $p, make what trade? " {
+                when /:s^ none $/ { return Nil; }
+                when /:s^ $0=<&offer> for $1=<&offer> with (.*) $/ {
+                    return { :type<trade>, :with(~$2),
+                             :selling(an($0)), :buying(an($1)) };
+                }
+                default { say "Illegal trade syntax.
+Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
+                }
+            }
+        }
+    }
     my $game = Game.new(p => (hash map {; "player_$_" => {} }, 1..$N),
                         t => (hash map {; "player_$_" => mt($_) }, 1..$N));
     until $game.someone_won() {
