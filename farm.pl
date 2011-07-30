@@ -28,35 +28,48 @@ class Game {
         return [+] map -> $k, $v { $v * %value{$k} }, %to_trade.kv;
     }
 
+    method publish(%event) { push @.e, {%event} }
+
     method transfer($from, $to, %animals) {
         for %animals.kv -> $animal, $amount {
             %!p{$from}{$animal} -= $amount;
             %!p{$to  }{$animal} += $amount;
         }
-        push @.e, { :type<transfer>, :$from, :$to, :%animals };
+        self.publish: { :type<transfer>, :$from, :$to, :%animals };
     }
 
     method play_round() {
         if (%!t{$!cp} // {;})(%!p) -> $_ {
-            if    .exists("type") && .<type> eq "trade"
-               && enough_animals(%!p{$!cp}, .<selling>)
-               && .exists("with") && (my $op = %!p{.<with>})
-               && (.<with> eq 'stock' || enough_animals($op, .<buying>))
-               && worth(.<selling>) == worth(.<buying>)
-               && .{'selling'|'buying'}.values.reduce(&infix:<+>) == 1
-               && (%!at{.<with>} // -> %, $ {True})(%!p, $!cp) {
-
+            if !.exists("type") || .<type> ne "trade" {
+                self.publish: { :type<failed>, :reason("Wrong type") };
+            }
+            elsif !enough_animals(%!p{$!cp}, .<selling>) {
+                self.publish: { :type<failed>, :reason("Not enough animals" ) };
+            }
+            elsif !.exists("with") || !(my $op = %!p{.<with>}) {
+                self.publish: { :type<failed>, :reason("Player doesn't exist") };
+            }
+            elsif .<with> ne 'stock' && !enough_animals($op, .<buying>) {
+                self.publish: { :type<failed>, :reason("Not enough animals" ) };
+            }
+            elsif worth(.<selling>) != worth(.<buying>) {
+                self.publish: { :type<failed>, :reason("Unequal trade") };
+            }
+            elsif not .{'selling'|'buying'}.values.reduce(&infix:<+>) == 1 {
+                self.publish: { :type<failed>, :reason("Many-to-many trade" ) };
+            }
+            elsif (%!at{.<with>} // -> %, $ {True})(%!p, $!cp) {
                 $.transfer($!cp, .<with>, .<selling>);
                 $.transfer(.<with>, $!cp, trunc_animals($op, .<buying>));
             }
         }
         if self.someone_won {
-            push @.e, { :type<win>, :who($!cp) };
+            self.publish: { :type<win>, :who($!cp) };
             return;
         }
 
         my ($fd, $wd) = &!fd(), &!wd();
-        push @.e, { :type<roll>, :player($!cp), :$fd, :$wd };
+        self.publish: { :type<roll>, :player($!cp), :$fd, :$wd };
         if $wd eq 'wolf' {
             if %!p{$!cp}<big_dog> {
                 $.transfer($!cp, "stock", { big_dog => 1 });
@@ -87,7 +100,7 @@ class Game {
         $.transfer("stock", $!cp, %to_transfer)
             if %to_transfer;
         if self.someone_won {
-            push @.e, { :type<win>, :who($!cp) };
+            self.publish: { :type<win>, :who($!cp) };
             return;
         }
         unless %!p.exists(++$!cp) {
@@ -104,11 +117,11 @@ multi MAIN() {
     my regex offer {:s [ (\d+) (<&word> ** <.ws>) ] ** ',' }
     sub an(Match $m) { hash map {; ~$m[1][$_] => ~$m[0][$_] }, $m[0].keys }
 
-    my $N = +(prompt "How many players? " // exit);
+    my $N = +((prompt "How many players? ") // exit);
     sub mt($p) {
         sub (%) { # Code lovingly st^Wcopied from sorear++'s version
             loop {
-                given trim (prompt "Player $p, make what trade? " // exit) {
+                given trim ((prompt "Player $p, make what trade? ") // exit) {
                     when /:s^ none $/ { return Nil; }
                     when /:s^ $0=<&offer> for $1=<&offer> with (.*) $/ {
                         return { :type<trade>, :with(~$2),
@@ -125,7 +138,8 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
     }
     sub mat($p) {
         sub (%, $op) {
-            my $answer = (prompt "Player $p, accept trade with $op? " // exit);
+            my $answer
+                = ((prompt "Player $p, accept trade with $op? ") // exit);
             return so $answer.lc ~~ /^y[es]?$/;
         }
     }
@@ -144,7 +158,10 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
             when :type<transfer> {
                 sub s($n) { $n == 1 ?? "" !! "s" }
                 say sprintf "%s gives %s %s", .<from>, .<to>,
-                    join " and ", map { "$^v $^k&s($v)" }, .<animals>.kv;
+                    join " and ", map { "$^v $^k" ~ s $v }, .<animals>.kv;
+            }
+            when :type<failed> {
+                say "Trade failed. Reason: $_.<reason>.";
             }
             when :type<win> {
                 last;
@@ -352,7 +369,7 @@ multi MAIN("test") {
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 },
                                   player_2 => { sheep => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "player_2",
                                     selling => { rabbit => 6 },
@@ -377,7 +394,7 @@ multi MAIN("test") {
     {
         my $game = Game.new(p => {player_1 => { rabbit => 5 },
                                   player_2 => { sheep => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "player_2",
                                     selling => { rabbit => 6 },
@@ -386,14 +403,16 @@ multi MAIN("test") {
                             at => {},
                             fd => { <horse> }, wd => { <cow> });
         $game.play_round();
-        is_deeply non_rolls($game.e), [],
-            "p1 doesn't have enough animals: no trade";
+        is_deeply non_rolls($game.e), [{
+            type     => "failed",
+            "reason" => "Not enough animals"
+        }], "p1 doesn't have enough animals: no trade";
     }
 
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 },
                                   player_2 => { cow => 3 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "player_2",
                                     selling => { rabbit => 6 },
@@ -402,14 +421,16 @@ multi MAIN("test") {
                             at => {},
                             fd => { <horse> }, wd => { <sheep> });
         $game.play_round();
-        is_deeply non_rolls($game.e), [],
-            "p2 doesn't have enough animals: no trade";
+        is_deeply non_rolls($game.e), [{
+            type     => "failed",
+            "reason" => "Not enough animals"
+        }], "p2 doesn't have enough animals: no trade";
     }
 
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 },
                                   player_2 => { sheep => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     with => "player_2",
                                     selling => { rabbit => 6 },
                                     buying  => { sheep => 1 },
@@ -417,13 +438,16 @@ multi MAIN("test") {
                             at => {},
                             fd => { <horse> }, wd => { <sheep> });
         $game.play_round();
-        is_deeply non_rolls($game.e), [], ":type key missing: no trade";
+        is_deeply non_rolls($game.e), [{
+            type     => "failed",
+            "reason" => "Wrong type"
+        }], ":type key missing: no trade";
     }
 
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 },
                                   player_2 => { sheep => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "scintillating muffin party",
                                     with => "player_2",
                                     selling => { rabbit => 6 },
@@ -432,13 +456,16 @@ multi MAIN("test") {
                             at => {},
                             fd => { <horse> }, wd => { <sheep> });
         $game.play_round();
-        is_deeply non_rolls($game.e), [], ":type key not 'trade': no trade";
+        is_deeply non_rolls($game.e), [{
+            type     => "failed",
+            "reason" => "Wrong type"
+        }], ":type key not 'trade': no trade";
     }
 
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 },
                                   player_2 => { sheep => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     selling => { rabbit => 6 },
                                     buying  => { sheep => 1 },
@@ -446,13 +473,16 @@ multi MAIN("test") {
                             at => {},
                             fd => { <horse> }, wd => { <sheep> });
         $game.play_round();
-        is_deeply non_rolls($game.e), [], ":with key missing: no trade";
+        is_deeply non_rolls($game.e), [{
+            type     => "failed",
+            "reason" => "Player doesn't exist"
+        }], ":with key missing: no trade";
     }
 
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 },
                                   player_2 => { sheep => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "player_8",
                                     selling => { rabbit => 6 },
@@ -461,13 +491,15 @@ multi MAIN("test") {
                             at => {},
                             fd => { <horse> }, wd => { <sheep> });
         $game.play_round();
-        is_deeply non_rolls($game.e), [],
-            ":with key contains illegal player: no trade";
+        is_deeply non_rolls($game.e), [{
+            type     => "failed",
+            "reason" => "Player doesn't exist"
+        }], ":with key contains illegal player: no trade";
     }
 
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "stock",
                                     selling => { rabbit => 6 },
@@ -492,7 +524,7 @@ multi MAIN("test") {
     {
         my $game = Game.new(p => {stock => { sheep => 1 },
                                   player_1 => { pig => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "stock",
                                     selling => { pig => 1 },
@@ -517,7 +549,7 @@ multi MAIN("test") {
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 },
                                   player_2 => { sheep => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "player_2",
                                     selling => { rabbit => 4 },
@@ -526,14 +558,17 @@ multi MAIN("test") {
                             at => {},
                             fd => { <horse> }, wd => { <cow> });
         $game.play_round();
-        is_deeply non_rolls($game.e), [],
+        is_deeply non_rolls($game.e), [{
+            type     => "failed",
+            "reason" => "Unequal trade"
+        }],
             "total values of animal pools don't match up: no trade";
     }
 
     {
         my $game = Game.new(p => {player_1 => { rabbit => 12 },
                                   player_2 => { sheep => 2 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "player_2",
                                     selling => { rabbit => 12 },
@@ -542,20 +577,22 @@ multi MAIN("test") {
                             at => {},
                             fd => { <horse> }, wd => { <cow> });
         $game.play_round();
-        is_deeply non_rolls($game.e), [],
-            "many animals against many animals: no trade";
+        is_deeply non_rolls($game.e), [{
+            type     => "failed",
+            "reason" => "Many-to-many trade"
+        }], "many animals against many animals: no trade";
     }
 
     {
         my $game = Game.new(p => {player_1 => { rabbit => 6 },
                                   player_2 => { sheep => 1 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "player_2",
                                     selling => { rabbit => 6 },
                                     buying  => { sheep => 1 },
                                  }}},
-                            at => {player_2 => sub { False }},
+                            at => {player_2 => sub (%, $) { False }},
                             fd => { <horse> }, wd => { <cow> });
         $game.play_round();
         is_deeply non_rolls($game.e), [], "p2 declines: no trade";
@@ -564,7 +601,7 @@ multi MAIN("test") {
     {
         my $game = Game.new(p => {player_1 => { rabbit => 1, sheep => 1,
                                                 pig => 1, cow => 3 }},
-                            t => {player_1 => sub { return {
+                            t => {player_1 => sub (%) { return {
                                     type => "trade",
                                     with => "stock",
                                     selling => { cow => 2 },
