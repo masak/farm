@@ -37,14 +37,14 @@ class Game {
     }
 
     method play_round() {
-        if (%!t{$!cp} // {;})() -> $_ {
+        if (%!t{$!cp} // {;})(%!p) -> $_ {
             if    .exists("type") && .<type> eq "trade"
                && enough_animals(%!p{$!cp}, .<selling>)
                && .exists("with") && (my $op = %!p{.<with>})
                && (.<with> eq 'stock' || enough_animals($op, .<buying>))
                && worth(.<selling>) == worth(.<buying>)
                && .{'selling'|'buying'}.values.reduce(&infix:<+>) == 1
-               && (%!at{.<with>} // {True})() {
+               && (%!at{.<with>} // -> %, $ {True})(%!p, $!cp) {
 
                 $.transfer($!cp, .<with>, .<selling>);
                 $.transfer(.<with>, $!cp, trunc_animals($op, .<buying>));
@@ -96,31 +96,44 @@ class Game {
     }
 
     method someone_won { so %!p{$!cp}{all <rabbit sheep pig cow horse>} }
-    method who_won { die "No-one won" unless self.someone_won; $!cp; }
+    method who_won { self.someone_won ?? $!cp !! Nil }
 }
 
 multi MAIN() {
     my token word { <.alpha>+ }
     my regex offer {:s [ (\d+) (<&word> ** <.ws>) ] ** ',' }
-    sub an(Match $m) { map {; ~$m[1][$_] => ~$m[0][$_] }, $m[0].keys }
+    sub an(Match $m) { hash map {; ~$m[1][$_] => ~$m[0][$_] }, $m[0].keys }
 
-    my $N = +prompt "How many players? ";
+    my $N = +(prompt "How many players? " // exit);
     sub mt($p) {
-        sub { # Code lovingly st^Wcopied from sorear++'s version
-            given trim prompt "Player $p, make what trade? " {
-                when /:s^ none $/ { return Nil; }
-                when /:s^ $0=<&offer> for $1=<&offer> with (.*) $/ {
-                    return { :type<trade>, :with(~$2),
-                             :selling(an($0)), :buying(an($1)) };
-                }
-                default { say "Illegal trade syntax.
+        sub (%) { # Code lovingly st^Wcopied from sorear++'s version
+            loop {
+                given trim (prompt "Player $p, make what trade? " // exit) {
+                    when /:s^ none $/ { return Nil; }
+                    when /:s^ $0=<&offer> for $1=<&offer> with (.*) $/ {
+                        return { :type<trade>, :with(~$2),
+                                 :selling(an($0)), :buying(an($1)) };
+                    }
+                    default {
+                        say "Illegal trade syntax.
 Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
+                        redo;
+                    }
                 }
             }
         }
     }
-    my $game = Game.new(p => (hash map {; "player_$_" => {} }, 1..$N),
-                        t => (hash map {; "player_$_" => mt($_) }, 1..$N));
+    sub mat($p) {
+        sub (%, $op) {
+            my $answer = (prompt "Player $p, accept trade with $op? " // exit);
+            return so $answer.lc ~~ /^y[es]?$/;
+        }
+    }
+    my $game = Game.new(
+        p  => (hash map {; "player_$_" => {}      }, 1..$N),
+        t  => (hash map {; "player_$_" => mt($_)  }, 1..$N),
+        at => (hash map {; "player_$_" => mat($_) }, 1..$N),
+    );
     loop {
         my $ei = $game.e.elems;
         $game.play_round();
