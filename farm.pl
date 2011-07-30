@@ -50,7 +50,10 @@ class Game {
                 $.transfer(.<with>, $!cp, trunc_animals($op, .<buying>));
             }
         }
-        return if self.someone_won;
+        if self.someone_won {
+            push @.e, { :type<win>, :who($!cp) };
+            return;
+        }
 
         my ($fd, $wd) = &!fd(), &!wd();
         push @.e, { :type<roll>, :player($!cp), :$fd, :$wd };
@@ -115,7 +118,7 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
     }
     my $game = Game.new(p => (hash map {; "player_$_" => {} }, 1..$N),
                         t => (hash map {; "player_$_" => mt($_) }, 1..$N));
-    until $game.someone_won() {
+    loop {
         my $ei = $game.e.elems;
         $game.play_round();
         for $game.e[$ei ..^ $game.e.elems] {
@@ -126,6 +129,9 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
                 sub s($n) { $n == 1 ?? "" !! "s" }
                 say sprintf "%s gives %s %s", .<from>, .<to>,
                     join " and ", map { "$^v $^k&s($v)" }, .<animals>.kv;
+            }
+            when :type<win> {
+                last;
             }
         }
     }
@@ -537,5 +543,32 @@ multi MAIN("test") {
                             fd => { <horse> }, wd => { <cow> });
         $game.play_round();
         is_deeply non_rolls($game.e), [], "p2 declines: no trade";
+    }
+
+    {
+        my $game = Game.new(p => {player_1 => { rabbit => 1, sheep => 1, pig => 1, cow => 3 }},
+                            t => {player_1 => sub { return {
+                                    type => "trade",
+                                    with => "stock",
+                                    selling => { cow => 2 },
+                                    buying  => { horse => 1 },
+                                 }}},
+                            at => {},
+                            fd => { <fox> }, wd => { <wolf> });
+        $game.play_round();
+        is_deeply non_rolls($game.e), [{
+            type    => "transfer",
+            from    => "player_1",
+            to      => "stock",
+            animals => { cow => 2 },
+        }, {
+            type    => "transfer",
+            from    => "stock",
+            to      => "player_1",
+            animals => { horse => 1 },
+        }, {
+            type    => "win",
+            who     => "player_1",
+        }], "winning by trading with stock";
     }
 }
