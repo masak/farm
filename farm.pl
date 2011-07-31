@@ -20,7 +20,7 @@ class Game {
     }
 
     sub trunc_animals(%player, %to_trade) {
-        hash map {; $_ => %to_trade{$_} min %player{$_} }, %to_trade.keys;
+        hash map {; $_ => +%to_trade{$_} min +%player{$_} }, %to_trade.keys;
     }
 
     sub worth(%to_trade) {
