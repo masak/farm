@@ -141,12 +141,13 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
         }
     }
     my $game = Game.new(
-        p  => (hash map {; "player_$_" => {}      }, 1..$N),
-        t  => (hash map {; "player_$_" => mt($_)  }, 1..$N),
-        at => (hash map {; "player_$_" => mat($_) }, 1..$N),
+        p  => hash(map {; "player_$_" => {}      }, 1..$N),
+        t  => hash(map {; "player_$_" => mt($_)  }, 1..$N),
+        at => hash(map {; "player_$_" => mat($_) }, 1..$N),
     );
-    my %p = stock => hash <rabbit 60 sheep 24 pig 20 cow 12 horse 6
-                           small_dog 4 big_dog 2>;
+    my %p = stock => hash(<rabbit 60 sheep 24 pig 20 cow 12 horse 6
+                           small_dog 4 big_dog 2>),
+            hash(map {; "player_$_" => {} }, 1..$N);
     loop {
         my $ei = $game.e.elems;
         $game.play_round();
@@ -161,6 +162,7 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
                 for .<animals>.kv -> $animal, $amount {
                     %p{.<from>}{$animal} -= $amount;
                     %p{.<to>  }{$animal} += $amount;
+                    %p{.<from>}.delete($animal) unless %p{.<from>}{$animal};
                 }
             }
             when :type<failed> {
