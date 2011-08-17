@@ -181,6 +181,44 @@ Valid are 'none', '2 pig, 1 sheep, 6 rabbit for 1 cow with stock'.";
     say "$game.who_won() won!";
 }
 
+multi MAIN("ai", *@names) {
+    die "Usage: $*PROGRAM_NAME ai <2..6 players>"
+        unless (my $N = +@names) ~~ 2..6;
+
+    for "Farm::AI::" <<~<< @names -> $module {
+        require $module;
+        my $class = eval($module);
+        die "No class definition found for $module"
+            if $class ~~ Failure;
+        for <trade accept> -> $method {
+            die "$module does not have a .$method method"
+                unless $class.can($method);
+            die ".$method method in $module has wrong arity"
+                unless $class.^methods.grep($method)[0].arity
+                    == { trade => 2, accept => 3 }{$method};
+        }
+    }
+
+    my @players = map -> $i, $name {
+        (eval "Farm::AI::$name").new(:player_number($i+1))
+    }, @names.kv;
+
+    my $game = Game.new(
+        p  => hash(map {; "player_$_" => {} },                      1..$N),
+        t  => hash(map {; "player_$_" =>
+                            { @players[$_-1].trade(%^p) }  },       1..$N),
+        at => hash(map {; "player_$_" =>
+                            { @players[$_-1].accept(%^p, $^op) } }, 1..$N),
+    );
+
+    my $round = 0;
+    repeat until $game.e[*] ~~ :type<win> {
+        say "Round ", ++$round;
+        $game.play_round();
+    }
+    say "$game.who_won() won!";
+}
+
 multi MAIN("test") {
     use Test;
 
