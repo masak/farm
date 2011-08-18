@@ -212,7 +212,7 @@ multi MAIN("ai", *@names) {
     }
 
     my @players = map -> $i, $name {
-        (eval "Farm::AI::$name").new(:player_number($i+1))
+        (eval "Farm::AI::$name").new(:player("player_{$i+1}"))
     }, @names.kv;
 
     my $game = Game.new(
