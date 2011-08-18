@@ -207,7 +207,7 @@ multi MAIN("ai", *@names) {
                 unless $class.can($method);
             die ".$method method in $module has wrong arity"
                 unless $class.^methods.grep($method)[0].arity
-                    == { trade => 2, accept => 3 }{$method};
+                    == { trade => 3, accept => 4 }{$method};
         }
     }
 
@@ -224,7 +224,7 @@ multi MAIN("ai", *@names) {
     );
 
     my $round = 0;
-    repeat until $game.e[*] ~~ :type<win> {
+    repeat until $game.e[*-1] ~~ :type<win> {
         say "Round ", ++$round;
         $game.play_round();
     }
