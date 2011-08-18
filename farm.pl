@@ -46,7 +46,7 @@ class Game {
                 hash map -> $k, $v {; $k => ($v ~~ Hash ?? deepclone($v) !! $v ) }, %h.kv
             }
             sub fail_trade(%trade, $reason) {
-                self.publish: { :type<failed>, :$reason,
+                self.publish: { :type<failed>, :$reason, :trader($!cp),
                                 :trade(deepclone(%trade)) };
             }
             if !.exists("type") || .<type> ne "trade" {
@@ -466,6 +466,7 @@ multi MAIN("test") {
         is_deeply non_rolls($game.e), [{
             type     => "failed",
             reason   => "Not enough animals",
+            trader   => "player_1",
             trade    => {
                 type    => "trade",
                 with    => "player_2",
@@ -490,6 +491,7 @@ multi MAIN("test") {
         is_deeply non_rolls($game.e), [{
             type     => "failed",
             reason   => "Not enough animals",
+            trader   => "player_1",
             trade    => {
                 type    => "trade",
                 with    => "player_2",
@@ -513,6 +515,7 @@ multi MAIN("test") {
         is_deeply non_rolls($game.e), [{
             type     => "failed",
             "reason" => "Wrong type",
+            trader   => "player_1",
             trade    => {
                 with    => "player_2",
                 selling => { rabbit => 6 },
@@ -536,6 +539,7 @@ multi MAIN("test") {
         is_deeply non_rolls($game.e), [{
             type     => "failed",
             reason   => "Wrong type",
+            trader   => "player_1",
             trade    => {
                 type    => "scintillating muffin party",
                 with    => "player_2",
@@ -559,6 +563,7 @@ multi MAIN("test") {
         is_deeply non_rolls($game.e), [{
             type     => "failed",
             reason   => "Player doesn't exist",
+            trader   => "player_1",
             trade    => {
                 type    => "trade",
                 selling => { rabbit => 6 },
@@ -581,7 +586,8 @@ multi MAIN("test") {
         $game.play_round();
         is_deeply non_rolls($game.e), [{
             type     => "failed",
-            "reason" => "Player doesn't exist",
+            reason   => "Player doesn't exist",
+            trader   => "player_1",
             trade    => {
                 type    => "trade",
                 with    => "player_8",
@@ -654,7 +660,8 @@ multi MAIN("test") {
         $game.play_round();
         is_deeply non_rolls($game.e), [{
             type     => "failed",
-            "reason" => "Unequal trade",
+            reason   => "Unequal trade",
+            trader   => "player_1",
             trade    => {
                 type    => "trade",
                 with    => "player_2",
@@ -679,7 +686,8 @@ multi MAIN("test") {
         $game.play_round();
         is_deeply non_rolls($game.e), [{
             type     => "failed",
-            "reason" => "Many-to-many trade",
+            reason   => "Many-to-many trade",
+            trader   => "player_1",
             trade    => {
                 type    => "trade",
                 with    => "player_2",
@@ -704,6 +712,7 @@ multi MAIN("test") {
         is_deeply non_rolls($game.e), [{
             type     => "failed",
             reason   => "Other player declined trade",
+            trader   => "player_1",
             trade    => {
                 type    => "trade",
                 with    => "player_2",
