@@ -1,3 +1,7 @@
+See
+[the lightning talk](http://masak.org/carl/yapc-eu-2011-little-animal-farm/talk.pdf)
+for the AI challenge.
+
 Players take turns. A turn consists of an optional exchange, followed by rolling dice.
 The first player to get (at least) a rabbit, a sheep, a pig, a cow, and a horse, wins.
 
