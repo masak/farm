@@ -11,8 +11,9 @@ class Game {
 
     submethod BUILD(:%!p, :&!fd, :&!wd, :@!e, :$!cp = 'player_1', :%!t, :%!at) {
         %!p<stock> //= hash @animals Z=> (60, 24, 20, 12, 6, 4, 2);
-        &!fd //= { ('rabbit' xx 6, <sheep pig> xx 2, 'horse', 'fox').roll };
-        &!wd //= { ('rabbit' xx 6, 'sheep' xx 3, 'pig', 'cow', 'wolf').roll };
+        # RAKUDO: [RT #114230] prevents us from using //= here
+        &!fd = { ('rabbit' xx 6, <sheep pig> xx 2, 'horse', 'fox').roll } unless defined &!fd;
+        &!wd = { ('rabbit' xx 6, 'sheep' xx 3, 'pig', 'cow', 'wolf').roll } unless defined &!wd;
     }
 
     method e() { [@!e] } # Protective cloning to avoid tampering
