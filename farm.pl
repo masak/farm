@@ -123,7 +123,7 @@ class Game {
 
 multi MAIN() {
     my token word { <.alpha>+ }
-    my regex offer {:s [ (\d+) (<&word> ** <.ws>) ] ** ',' }
+    my regex offer {:s [ (\d+) (<&word>+ % <.ws>) ]+ % ',' }
     sub an(Match $m) { hash map {; ~$m[1][$_] => ~$m[0][$_] }, $m[0].keys }
 
     my $N = +((prompt "How many players? ") // exit);
